@@ -62,8 +62,10 @@ struct Cli {
 
 #[derive(Debug, Parser)]
 enum Subcommand {
-    /// Adjust expected test outcomes in metadata, optionally using `wptreport.json` reports from
-    /// CI runs covering your browser's implementation of WebGPU.
+    /// Adjust test metadata's `expected` outcome field according to some criteria.
+    ///
+    /// Normally, one uses`wptreport.json` reports from CI runs covering your browser's
+    /// implementation of WebGPU with this command.
     ///
     /// As your browser's behavior changes, one generally expects CTS test outcomes to change. When
     /// you are testing your own changes in CI, you can use this subcommand to update expected
@@ -81,7 +83,7 @@ enum Subcommand {
     /// With both steps, you may delete the local copies of these reports after being processed
     /// with `update-expected`. You should not need to re-process them unless you have made an
     /// error in following these steps.
-    #[clap(alias = "process-reports")]
+    #[clap(alias = "process-reports", next_help_heading = "WPT manipulation")]
     UpdateExpected {
         #[clap(flatten)]
         exec_report_spec: ExecReportSpec,
@@ -93,13 +95,15 @@ enum Subcommand {
         #[clap(value_enum, long)]
         implementation_status: Vec<ImplementationStatus>,
     },
-    /// Parse test metadata, apply automated fixups, and re-emit it in normalized form.
-    #[clap(name = "fixup", alias = "fmt")]
+    /// Parse test metadata, apply automated fixups, and re-emit it.
+    #[clap(alias = "fmt", subcommand_help_heading = "asdf")]
     Fixup,
     Triage {
         #[clap(value_enum, long, default_value_t = Default::default())]
         on_zero_item: OnZeroItem,
     },
+    /// Adjust test metadata's `implementation-status` field according to some criteria.
+    ///
     /// Identify and promote tests that are ready to come out of the `backlog` implementation
     /// status.
     UpdateBacklog {
@@ -107,8 +111,9 @@ enum Subcommand {
         #[clap(subcommand)]
         preset: UpdateBacklogSubcommand,
     },
-    /// Dump all metadata as JSON. Do so at your own risk; no guarantees are made about the
-    /// schema of this JSON, for now.
+    /// Dump all test metadata as JSON. Do so at your own risk!
+    ///
+    /// No guarantees are made about the schema of this JSON, for now.
     DumpJson,
 }
 
