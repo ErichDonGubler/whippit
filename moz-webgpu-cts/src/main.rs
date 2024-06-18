@@ -269,6 +269,8 @@ enum UpdateBacklogSubcommand {
         #[clap(long, default_value_t = true)]
         only_across_all_platforms: bool,
     },
+    /// Add all tests to the `backlog`.
+    DemoteAll,
 }
 
 fn main() -> ExitCode {
@@ -1030,6 +1032,11 @@ fn run(cli: Cli) -> ExitCode {
                                         Case::Other => ImplementationStatus::Backlog,
                                     }));
                             }
+                        }
+                        UpdateBacklogSubcommand::DemoteAll => {
+                            properties.implementation_status = Some(
+                                ExpandedPropertyValue::unconditional(ImplementationStatus::Backlog),
+                            );
                         }
                     }
                 }
