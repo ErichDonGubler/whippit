@@ -105,7 +105,7 @@ enum Subcommand {
     UpdateBacklog {
         /// The mode to use for updating tests.
         #[clap(subcommand)]
-        preset: UpdateBacklogSubcommand,
+        subcommand: UpdateBacklogSubcommand,
     },
     /// Dump all metadata as JSON. Do so at your own risk; no guarantees are made about the
     /// schema of this JSON, for now.
@@ -939,7 +939,7 @@ fn run(cli: Cli) -> ExitCode {
             println!("Full analysis: {analysis:#?}");
             ExitCode::SUCCESS
         }
-        Subcommand::UpdateBacklog { preset } => {
+        Subcommand::UpdateBacklog { subcommand } => {
             let mut files = {
                 let mut found_parse_err = false;
                 let extracted = read_and_parse_all_metadata(browser, &checkout)
@@ -1017,7 +1017,7 @@ fn run(cli: Cli) -> ExitCode {
                     // subtests afterwards.
                     let value_across_all_platforms =
                         || cases.into_iter().map(|(_, case)| case).all_equal_value();
-                    match preset {
+                    match subcommand {
                         UpdateBacklogSubcommand::PromotePermaPassing {
                             only_across_all_platforms,
                         } => {
