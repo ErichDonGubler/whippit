@@ -979,7 +979,7 @@ fn run(cli: Cli) -> ExitCode {
                         properties,
                         subtests,
                     } = test;
-                    let mut cases = ExpandedPropertyValue::default();
+                    let mut aggregated_case_for_test = ExpandedPropertyValue::default();
                     for ((platform, build_profile), expected) in properties
                         .expected
                         .as_ref()
@@ -990,33 +990,43 @@ fn run(cli: Cli) -> ExitCode {
                             Some(TestOutcome::Ok | TestOutcome::Pass) => Case::PermaPass,
                             _ => Case::Other,
                         };
-                        cases[(platform, build_profile)] = case;
+                        aggregated_case_for_test[(platform, build_profile)] = case;
                     }
                     if !subtests.is_empty() {
-                        cases = ExpandedPropertyValue::from_query(|platform, build_profile| {
-                            let consistent_expected = subtests
-                                .iter()
-                                .map(|subtest| {
-                                    let (_name, Subtest { properties }) = subtest;
-                                    let expected =
-                                        properties.expected.as_ref().unwrap_or(&Default::default())
+                        aggregated_case_for_test =
+                            ExpandedPropertyValue::from_query(|platform, build_profile| {
+                                let consistent_expected = subtests
+                                    .iter()
+                                    .map(|subtest| {
+                                        let (_name, Subtest { properties }) = subtest;
+                                        let expected = properties
+                                            .expected
+                                            .as_ref()
+                                            .unwrap_or(&Default::default())
                                             [(platform, build_profile)];
-                                    if let Some(SubtestOutcome::Pass) = expected.as_permanent() {
-                                        Case::PermaPass
-                                    } else {
-                                        Case::Other
-                                    }
-                                })
-                                .chain(iter::once(cases[(platform, build_profile)]))
-                                .all_equal_value()
-                                .ok();
-                            consistent_expected.unwrap_or(Case::Other)
-                        });
+                                        if let Some(SubtestOutcome::Pass) = expected.as_permanent()
+                                        {
+                                            Case::PermaPass
+                                        } else {
+                                            Case::Other
+                                        }
+                                    })
+                                    .chain(iter::once(
+                                        aggregated_case_for_test[(platform, build_profile)],
+                                    ))
+                                    .all_equal_value()
+                                    .ok();
+                                consistent_expected.unwrap_or(Case::Other)
+                            });
                     }
                     // TODO: Just compare this multiple times (here _and_ above), and compare
                     // subtests afterwards.
-                    let value_across_all_platforms =
-                        || cases.into_iter().map(|(_, case)| case).all_equal_value();
+                    let value_across_all_platforms = || {
+                        aggregated_case_for_test
+                            .into_iter()
+                            .map(|(_, case)| case)
+                            .all_equal_value()
+                    };
                     match subcommand {
                         UpdateBacklogSubcommand::PromotePermaPassing {
                             only_across_all_platforms,
@@ -1025,7 +1035,7 @@ fn run(cli: Cli) -> ExitCode {
                                 properties.implementation_status = None;
                             } else if !only_across_all_platforms {
                                 properties.implementation_status =
-                                    Some(cases.map(|case| match case {
+                                    Some(aggregated_case_for_test.map(|case| match case {
                                         Case::PermaPass => ImplementationStatus::Implementing,
                                         Case::Other => ImplementationStatus::Backlog,
                                     }));
